@@ -1,0 +1,36 @@
+.corner-action {
+  position: fixed;
+  z-index: 15;
+  border: 2px solid #111;
+  background: var(--color-secondary);
+  box-shadow: var(--shadow);
+  padding: 0.75rem 1rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.top-left {
+  top: 96px;
+  left: 18px;
+}
+
+.top-right {
+  top: 96px;
+  right: 18px;
+}
+
+.bottom-left {
+  bottom: 18px;
+  left: 18px;
+}
+
+.bottom-right {
+  right: 18px;
+  bottom: 18px;
+}
+
+@media (max-width: 900px) {
+  .staggered-menu {
+    display: none;
+  }
+}

@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Argentina",
+    "logo": "/teams/Argentina.png",
+    "group": ""
+  },
+  {
+    "name": "Belgium",
+    "logo": "/teams/Belgium.png",
+    "group": ""
+  },
+  {
+    "name": "Brazil",
+    "logo": "/teams/Brazil.png",
+    "group": ""
+  },
+  {
+    "name": "Croatia",
+    "logo": "/teams/Croatia.png",
+    "group": ""
+  },
+  {
+    "name": "England",
+    "logo": "/teams/England.png",
+    "group": ""
+  },
+  {
+    "name": "France",
+    "logo": "/teams/France.png",
+    "group": ""
+  },
+  {
+    "name": "Germany",
+    "logo": "/teams/Germany.png",
+    "group": ""
+  },
+  {
+    "name": "Japan",
+    "logo": "/teams/Japan.png",
+    "group": ""
+  },
+  {
+    "name": "Korea",
+    "logo": "/teams/Korea.png",
+    "group": ""
+  },
+  {
+    "name": "Mexico",
+    "logo": "/teams/Mexico.png",
+    "group": ""
+  },
+  {
+    "name": "Morocco",
+    "logo": "/teams/Morocco.png",
+    "group": ""
+  },
+  {
+    "name": "Netherlands",
+    "logo": "/teams/Netherlands.png",
+    "group": ""
+  },
+  {
+    "name": "Poland",
+    "logo": "/teams/Poland.png",
+    "group": ""
+  },
+  {
+    "name": "Portugal",
+    "logo": "/teams/Portugal.png",
+    "group": ""
+  },
+  {
+    "name": "Senegal",
+    "logo": "/teams/Senegal.png",
+    "group": ""
+  },
+  {
+    "name": "Spain",
+    "logo": "/teams/Spain.png",
+    "group": ""
+  },
+  {
+    "name": "Switzerland",
+    "logo": "/teams/Switzerland.png",
+    "group": ""
+  },
+  {
+    "name": "USA",
+    "logo": "/teams/USA.png",
+    "group": ""
+  }
+]

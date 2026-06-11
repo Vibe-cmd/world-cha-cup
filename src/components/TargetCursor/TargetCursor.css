@@ -1,0 +1,41 @@
+.target-cursor {
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  pointer-events: none;
+  border: 2px solid var(--color-primary);
+  mix-blend-mode: difference;
+  cursor: none;
+}
+
+.target-cursor::before,
+.target-cursor::after {
+  content: '';
+  position: absolute;
+  background: #fff;
+}
+
+.target-cursor::before {
+  width: 34px;
+  height: 2px;
+  left: -8px;
+  top: 8px;
+}
+
+.target-cursor::after {
+  width: 2px;
+  height: 34px;
+  left: 8px;
+  top: -8px;
+}
+
+.target-cursor.is-locked {
+  width: 42px;
+  height: 42px;
+  margin: -21px 0 0 -21px;
+  border-color: #fff;
+}
