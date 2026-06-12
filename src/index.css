@@ -21,6 +21,10 @@
   box-sizing: border-box;
 }
 
+* {
+  min-width: 0;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -64,6 +68,22 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+button,
+input,
+select,
+textarea,
+p,
+span,
+strong,
+td,
+th,
+h1,
+h2,
+h3,
+h4 {
+  overflow-wrap: anywhere;
 }
 
 button,
@@ -157,6 +177,13 @@ h2 {
   font-size: clamp(2rem, 5vw, 4rem);
 }
 
+h1,
+h2,
+h3,
+h4 {
+  max-width: 100%;
+}
+
 p {
   line-height: 1.6;
 }
@@ -246,6 +273,7 @@ p {
 
 .section-title {
   display: flex;
+  flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
   gap: 16px;
@@ -279,11 +307,23 @@ p {
   font-weight: 900;
 }
 
+.table-shell {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 2px solid #111;
+  box-shadow: var(--shadow);
+  background: var(--color-card);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
 .scoreboard {
   width: 100%;
+  min-width: 560px;
   border-collapse: separate;
   border-spacing: 0;
-  overflow: hidden;
+  box-shadow: none;
+  border: 0;
 }
 
 .scoreboard th,
@@ -291,6 +331,7 @@ p {
   padding: 12px;
   border-bottom: 2px solid #111;
   text-align: left;
+  vertical-align: middle;
 }
 
 .scoreboard tr:last-child td {
@@ -452,6 +493,13 @@ p {
 .prediction-card,
 .highlight-card {
   padding: 20px;
+}
+
+.country-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }
 
 .highlight-card iframe {

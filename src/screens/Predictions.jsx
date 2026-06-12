@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import teams from '../data/teams.json';
 import { POINTS_CONFIG } from '../config/pointsConfig.js';
 import { useFootballData } from '../hooks/useFootballData.js';
@@ -30,26 +30,53 @@ export default function Predictions() {
   const [selection, setSelection] = useState('');
   const [savedSelection, setSavedSelection] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
+  const [leaderboardProfiles, setLeaderboardProfiles] = useState([]);
   const [bracket, setBracket] = useState(() => JSON.parse(localStorage.getItem('world-cha-cup-bracket') ?? '{}'));
   const nextMatch = upcoming[0];
   const locked = nextMatch ? new Date(nextMatch.startsAt) <= new Date() : true;
-  const leaderboard = [
-    ...(profile?.username
-      ? [
-          {
-            username: profile.username,
-            personalTag: profile.personal_tag,
-            points: profile.points ?? 0,
-            avatar: profile.avatar,
-          },
-        ]
-      : []),
-  ].sort((a, b) => b.points - a.points);
+  const fallbackLeaderboard = profile?.username
+    ? [
+        {
+          id: profile.id,
+          username: profile.username,
+          personalTag: profile.personal_tag,
+          points: profile.points ?? 0,
+          avatar: profile.avatar,
+        },
+      ]
+    : [];
+  const leaderboard = (leaderboardProfiles.length ? leaderboardProfiles : fallbackLeaderboard).sort(
+    (a, b) => b.points - a.points,
+  );
 
   useEffect(() => {
-    if (!nextMatch) {
-      return;
+    async function loadLeaderboard() {
+      if (!supabase || !user) return;
+
+      const { data, error: leaderboardError } = await supabase
+        .from('profiles')
+        .select('id, username, personal_tag, points, avatar')
+        .not('username', 'is', null)
+        .order('points', { ascending: false });
+
+      if (!leaderboardError && data) {
+        setLeaderboardProfiles(
+          data.map((row) => ({
+            id: row.id,
+            username: row.username,
+            personalTag: row.personal_tag,
+            points: row.points ?? 0,
+            avatar: row.avatar,
+          })),
+        );
+      }
     }
+
+    loadLeaderboard();
+  }, [user, profile?.points]);
+
+  useEffect(() => {
+    if (!nextMatch) return;
 
     const storageKey = `world-cha-cup-prediction:${nextMatch.id}`;
     const localPrediction = localStorage.getItem(storageKey) ?? '';
@@ -58,9 +85,7 @@ export default function Predictions() {
     setSaveMessage(localPrediction ? 'Prediction saved.' : '');
 
     async function loadSavedPrediction() {
-      if (!supabase || !user) {
-        return;
-      }
+      if (!supabase || !user) return;
 
       const { data } = await supabase
         .from('match_predictions')
@@ -81,9 +106,7 @@ export default function Predictions() {
   }, [nextMatch?.id, user]);
 
   async function savePrediction() {
-    if (!nextMatch) {
-      return;
-    }
+    if (!nextMatch) return;
 
     if (!selection) {
       setSaveMessage('Pick an outcome first.');
@@ -205,30 +228,36 @@ export default function Predictions() {
               <p className="muted">{loading ? 'Loading match data…' : error || 'No upcoming World Cup fixtures returned.'}</p>
             )}
           </article>
-          <table className="scoreboard">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Avatar</th>
-                <th>Username</th>
-                <th>Tag</th>
-                <th>Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((row, index) => (
-                <tr key={`${row.username}-${index}`}>
-                  <td>{index + 1}</td>
-                  <td>
-                    {row.avatar ? <img className="avatar-chip" src={row.avatar} alt="" /> : <span className="avatar-chip avatar-fallback">?</span>}
-                  </td>
-                  <td>{row.username}</td>
-                  <td>{row.personalTag ?? row.personal_tag}</td>
-                  <td>{row.points}</td>
+          <div className="table-shell">
+            <table className="scoreboard">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Avatar</th>
+                  <th>Username</th>
+                  <th>Tag</th>
+                  <th>Points</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {leaderboard.map((row, index) => (
+                  <tr key={`${row.id ?? row.username}-${index}`}>
+                    <td>{index + 1}</td>
+                    <td>
+                      {row.avatar ? (
+                        <img className="avatar-chip" src={row.avatar} alt="" />
+                      ) : (
+                        <span className="avatar-chip avatar-fallback">?</span>
+                      )}
+                    </td>
+                    <td>{row.username}</td>
+                    <td>{row.personalTag ?? '—'}</td>
+                    <td>{row.points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="bracket-layout">

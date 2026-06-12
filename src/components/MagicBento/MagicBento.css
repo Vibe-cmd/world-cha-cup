@@ -2,6 +2,7 @@
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 20px;
+  max-width: 100%;
 }
 
 .magic-card {
@@ -10,6 +11,7 @@
   padding: 24px;
   overflow: visible;
   isolation: isolate;
+  max-width: 100%;
 }
 
 .magic-card::after {
