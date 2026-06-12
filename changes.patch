@@ -33,6 +33,26 @@ index 8ce8984..2a6f4c3 100644
 +- Required client-side Supabase vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`.
 +- Required serverless API vars: `API_FOOTBALL_KEY`, `FOOTBALL_DATA_API_KEY`.
 +- The app calls `/api/api-football/*` first and `/api/football-data/*` as backup, so sports API keys are not exposed in browser code.
+diff --git a/src/index.css b/src/index.css
+index f62711c..8d0fec7 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -235,6 +235,15 @@ p {
+   opacity: 0.72;
+ }
+ 
++.form-error {
++  border: 2px solid #111;
++  background: #ff6b6b;
++  box-shadow: var(--shadow);
++  color: #111;
++  font-weight: 900;
++  padding: 12px;
++}
++
+ .section-title {
+   display: flex;
+   align-items: end;
 diff --git a/src/screens/Login.jsx b/src/screens/Login.jsx
 index bc9b029..95780e0 100644
 --- a/src/screens/Login.jsx
@@ -52,6 +72,71 @@ index bc9b029..95780e0 100644
            Sign in with Google
          </button>
        </div>
+diff --git a/src/screens/Onboarding.jsx b/src/screens/Onboarding.jsx
+index 806e293..7471e71 100644
+--- a/src/screens/Onboarding.jsx
++++ b/src/screens/Onboarding.jsx
+@@ -7,13 +7,15 @@ import { DEFAULT_PALETTE, TEAM_PALETTES } from '../config/teamPalettes.js';
+ import { useAuth } from '../state/AuthProvider.jsx';
+ 
+ export default function Onboarding() {
+-  const { user, profile, saveProfile } = useAuth();
++  const { profile, saveProfile } = useAuth();
+   const navigate = useNavigate();
+   const [step, setStep] = useState(1);
++  const [error, setError] = useState('');
++  const [saving, setSaving] = useState(false);
+   const [form, setForm] = useState({
+-    full_name: profile?.full_name ?? user?.user_metadata?.full_name ?? '',
+-    username: profile?.username ?? '',
+-    personal_tag: profile?.personal_tag ?? '#GoalMachine',
++    full_name: '',
++    username: '',
++    personal_tag: '',
+     favorite_team: profile?.favorite_team ?? teams[0]?.name ?? 'Brazil',
+     avatar: profile?.avatar ?? AVATAR_OPTIONS[0]?.src ?? '',
+   });
+@@ -25,12 +27,20 @@ export default function Onboarding() {
+ 
+   async function submit(event) {
+     event.preventDefault();
+-    await saveProfile({
+-      ...form,
+-      palette: selectedPalette,
+-      points: profile?.points ?? 0,
+-    });
+-    navigate('/');
++    setError('');
++    setSaving(true);
++
++    try {
++      await saveProfile({
++        ...form,
++        palette: selectedPalette,
++      });
++      navigate('/');
++    } catch (saveError) {
++      setError(saveError.message ?? 'Could not save onboarding. Please try again.');
++    } finally {
++      setSaving(false);
++    }
+   }
+ 
+   return (
+@@ -130,10 +140,11 @@ export default function Onboarding() {
+               <button className="cursor-target" type="button" onClick={() => setStep(2)}>
+                 Back
+               </button>
+-              <button className="cursor-target" type="submit">
+-                Enter App
++              <button className="cursor-target" type="submit" disabled={saving}>
++                {saving ? 'Saving…' : 'Enter App'}
+               </button>
+             </div>
++            {error && <p className="form-error">{error}</p>}
+           </>
+         )}
+       </form>
 diff --git a/src/services/apiFootball.js b/src/services/apiFootball.js
 index 29e2746..9bfd0a5 100644
 --- a/src/services/apiFootball.js
@@ -111,10 +196,50 @@ index d06fa11..d35cbd4 100644
  
    if (!response.ok) {
 diff --git a/src/state/AuthProvider.jsx b/src/state/AuthProvider.jsx
-index 7ee7939..b4f120b 100644
+index 7ee7939..9c983e5 100644
 --- a/src/state/AuthProvider.jsx
 +++ b/src/state/AuthProvider.jsx
-@@ -54,7 +54,8 @@ export function AuthProvider({ children }) {
+@@ -1,12 +1,12 @@
+ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+ import { isSupabaseConfigured, supabase } from '../lib/supabase.js';
+-import { getLocalProfile, saveLocalProfile } from '../utils/storage.js';
++import { clearLocalProfile, getLocalProfile, saveLocalProfile } from '../utils/storage.js';
+ 
+ const AuthContext = createContext(null);
+ 
+ export function AuthProvider({ children }) {
+   const [session, setSession] = useState(null);
+-  const [profile, setProfile] = useState(getLocalProfile());
++  const [profile, setProfile] = useState(null);
+   const [loading, setLoading] = useState(isSupabaseConfigured);
+ 
+   useEffect(() => {
+@@ -30,6 +30,7 @@ export function AuthProvider({ children }) {
+   useEffect(() => {
+     async function loadProfile() {
+       if (!supabase || !session?.user) {
++        setProfile(null);
+         return;
+       }
+ 
+@@ -41,7 +42,15 @@ export function AuthProvider({ children }) {
+ 
+       if (!error && data) {
+         setProfile(data);
+-        saveLocalProfile(data);
++        saveLocalProfile(data, session.user.id);
++        return;
++      }
++
++      const cachedProfile = getLocalProfile(session.user.id);
++      if (cachedProfile?.id === session.user.id) {
++        setProfile(cachedProfile);
++      } else {
++        setProfile(null);
+       }
+     }
+ 
+@@ -54,7 +63,8 @@ export function AuthProvider({ children }) {
        session,
        user: session?.user ?? null,
        profile,
@@ -124,6 +249,184 @@ index 7ee7939..b4f120b 100644
        isOnboarded: Boolean(profile?.username && profile?.favorite_team && profile?.avatar),
        async signInWithGoogle() {
          if (!supabase) {
+@@ -69,38 +79,48 @@ export function AuthProvider({ children }) {
+         });
+       },
+       async signOut() {
++        const userId = session?.user?.id;
+         if (supabase) {
+           await supabase.auth.signOut();
+         }
+         setSession(null);
++        setProfile(null);
++        clearLocalProfile(userId);
+       },
+       async saveProfile(nextProfile) {
++        if (!supabase || !session?.user) {
++          throw new Error('You must be signed in before saving onboarding.');
++        }
++
+         const mergedProfile = {
+-          ...profile,
+-          ...nextProfile,
+-          id: session?.user?.id ?? profile?.id ?? 'local-user',
++          id: session.user.id,
++          full_name: nextProfile.full_name?.trim() ?? '',
++          username: nextProfile.username?.trim() ?? '',
++          personal_tag: nextProfile.personal_tag?.trim() ?? '',
++          favorite_team: nextProfile.favorite_team,
++          avatar: nextProfile.avatar,
++          palette: nextProfile.palette,
++          points: profile?.points ?? 0,
+           updated_at: new Date().toISOString(),
+         };
+ 
+-        if (supabase && session?.user) {
+-          const { data, error } = await supabase
+-            .from('profiles')
+-            .upsert(mergedProfile, { onConflict: 'id' })
+-            .select()
+-            .single();
++        if (!mergedProfile.full_name || !mergedProfile.username || !mergedProfile.personal_tag) {
++          throw new Error('Please complete all identity fields.');
++        }
+ 
+-          if (error) {
+-            throw error;
+-          }
++        const { data, error } = await supabase
++          .from('profiles')
++          .upsert(mergedProfile, { onConflict: 'id' })
++          .select()
++          .single();
+ 
+-          setProfile(data);
+-          saveLocalProfile(data);
+-          return data;
++        if (error) {
++          throw error;
+         }
+ 
+-        setProfile(mergedProfile);
+-        saveLocalProfile(mergedProfile);
+-        return mergedProfile;
++        setProfile(data);
++        saveLocalProfile(data, session.user.id);
++        return data;
+       },
+     }),
+     [loading, profile, session],
+diff --git a/src/utils/storage.js b/src/utils/storage.js
+index 1580b46..de5dbc9 100644
+--- a/src/utils/storage.js
++++ b/src/utils/storage.js
+@@ -1,19 +1,29 @@
+ const PROFILE_KEY = 'world-cha-cup-profile';
+ const SETTINGS_KEY = 'world-cha-cup-settings';
+ 
+-export function getLocalProfile() {
++function profileKey(userId) {
++  return userId ? `${PROFILE_KEY}:${userId}` : PROFILE_KEY;
++}
++
++export function getLocalProfile(userId) {
+   try {
+-    return JSON.parse(localStorage.getItem(PROFILE_KEY)) ?? null;
++    return JSON.parse(localStorage.getItem(profileKey(userId))) ?? null;
+   } catch {
+     return null;
+   }
+ }
+ 
+-export function saveLocalProfile(profile) {
+-  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
++export function saveLocalProfile(profile, userId = profile?.id) {
++  if (!userId) {
++    return;
++  }
++  localStorage.setItem(profileKey(userId), JSON.stringify(profile));
+ }
+ 
+-export function clearLocalProfile() {
++export function clearLocalProfile(userId) {
++  if (userId) {
++    localStorage.removeItem(profileKey(userId));
++  }
+   localStorage.removeItem(PROFILE_KEY);
+ }
+ 
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index 5d689e8..abb0b77 100644
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -11,6 +11,15 @@ create table if not exists public.profiles (
+   updated_at timestamptz not null default now()
+ );
+ 
++alter table public.profiles add column if not exists full_name text;
++alter table public.profiles add column if not exists username text unique;
++alter table public.profiles add column if not exists personal_tag text;
++alter table public.profiles add column if not exists favorite_team text;
++alter table public.profiles add column if not exists avatar text;
++alter table public.profiles add column if not exists palette jsonb not null default '{}'::jsonb;
++alter table public.profiles add column if not exists points integer not null default 0;
++alter table public.profiles add column if not exists updated_at timestamptz not null default now();
++
+ create table if not exists public.match_predictions (
+   id uuid primary key default gen_random_uuid(),
+   user_id uuid not null references auth.users(id) on delete cascade,
+@@ -55,6 +64,10 @@ create table if not exists public.api_cache (
+   updated_at timestamptz not null default now()
+ );
+ 
++alter table public.api_cache add column if not exists payload jsonb not null default '{}'::jsonb;
++alter table public.api_cache add column if not exists expires_at timestamptz not null default now();
++alter table public.api_cache add column if not exists updated_at timestamptz not null default now();
++
+ alter table public.profiles enable row level security;
+ alter table public.match_predictions enable row level security;
+ alter table public.bracket_predictions enable row level security;
+@@ -62,6 +75,26 @@ alter table public.highlights enable row level security;
+ alter table public.admins enable row level security;
+ alter table public.api_cache enable row level security;
+ 
++revoke all on public.profiles from anon;
++revoke all on public.match_predictions from anon;
++revoke all on public.bracket_predictions from anon;
++revoke all on public.highlights from anon;
++revoke all on public.admins from anon;
++revoke all on public.api_cache from anon;
++
++drop policy if exists "profiles are visible to authenticated users" on public.profiles;
++drop policy if exists "users can create their own profile" on public.profiles;
++drop policy if exists "users can update their own profile" on public.profiles;
++drop policy if exists "predictions are visible to authenticated users" on public.match_predictions;
++drop policy if exists "users manage own match predictions" on public.match_predictions;
++drop policy if exists "users manage own bracket predictions" on public.bracket_predictions;
++drop policy if exists "highlights are visible to authenticated users" on public.highlights;
++drop policy if exists "admins manage highlights" on public.highlights;
++drop policy if exists "admins can read admin rows" on public.admins;
++drop policy if exists "authenticated users can read api cache" on public.api_cache;
++drop policy if exists "authenticated users can refresh api cache" on public.api_cache;
++drop policy if exists "authenticated users can update api cache" on public.api_cache;
++
+ create policy "profiles are visible to authenticated users"
+   on public.profiles for select
+   to authenticated
+@@ -119,10 +152,10 @@ create policy "authenticated users can read api cache"
+ create policy "authenticated users can refresh api cache"
+   on public.api_cache for insert
+   to authenticated
+-  with check (true);
++  with check (exists (select 1 from public.admins where admins.user_id = (select auth.uid())));
+ 
+ create policy "authenticated users can update api cache"
+   on public.api_cache for update
+   to authenticated
+-  using (true)
+-  with check (true);
++  using (exists (select 1 from public.admins where admins.user_id = (select auth.uid())))
++  with check (exists (select 1 from public.admins where admins.user_id = (select auth.uid())));
 diff --git a/vite.config.js b/vite.config.js
 index 4aa59a3..dc969c8 100644
 --- a/vite.config.js
