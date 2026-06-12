@@ -1,5 +1,3 @@
-import { supabase } from '../lib/supabase.js';
-
 const MEMORY_CACHE = new Map();
 const LOCAL_PREFIX = 'world-cha-cup-cache:';
 
@@ -40,22 +38,7 @@ export async function getCachedData(key) {
     return localPayload;
   }
 
-  if (!supabase) {
-    return null;
-  }
-
-  const { data } = await supabase
-    .from('api_cache')
-    .select('payload, expires_at')
-    .eq('cache_key', key)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle();
-
-  if (!data) {
-    return null;
-  }
-
-  return data.payload;
+  return null;
 }
 
 export async function setCachedData(key, payload, ttlMs) {
@@ -63,18 +46,6 @@ export async function setCachedData(key, payload, ttlMs) {
   MEMORY_CACHE.set(key, { payload, expiresAt });
   writeLocal(key, payload, ttlMs);
 
-  if (!supabase) {
-    return;
-  }
-
-  await supabase.from('api_cache').upsert(
-    {
-      cache_key: key,
-      payload,
-      expires_at: new Date(expiresAt).toISOString(),
-    },
-    { onConflict: 'cache_key' },
-  );
 }
 
 export async function cachedRequest(key, ttlMs, fetcher) {

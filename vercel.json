@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/api-football/:path*",
+      "destination": "/api/api-football?path=:path*"
+    },
+    {
+      "source": "/api/football-data/:path*",
+      "destination": "/api/football-data?path=:path*"
+    }
+  ]
+}

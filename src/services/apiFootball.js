@@ -29,7 +29,7 @@ function normalizeMatch(item) {
 }
 
 async function request(path) {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${API_BASE}?path=${encodeURIComponent(path)}`, {
     headers: { accept: 'application/json' },
   });
 
