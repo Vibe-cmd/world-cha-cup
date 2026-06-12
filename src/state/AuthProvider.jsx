@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabase.js';
-import { getLocalProfile, saveLocalProfile } from '../utils/storage.js';
+import { clearLocalProfile, getLocalProfile, saveLocalProfile } from '../utils/storage.js';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
-  const [profile, setProfile] = useState(getLocalProfile());
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
   useEffect(() => {
@@ -30,6 +30,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function loadProfile() {
       if (!supabase || !session?.user) {
+        setProfile(null);
         return;
       }
 
@@ -41,7 +42,15 @@ export function AuthProvider({ children }) {
 
       if (!error && data) {
         setProfile(data);
-        saveLocalProfile(data);
+        saveLocalProfile(data, session.user.id);
+        return;
+      }
+
+      const cachedProfile = getLocalProfile(session.user.id);
+      if (cachedProfile?.id === session.user.id) {
+        setProfile(cachedProfile);
+      } else {
+        setProfile(null);
       }
     }
 
@@ -70,38 +79,48 @@ export function AuthProvider({ children }) {
         });
       },
       async signOut() {
+        const userId = session?.user?.id;
         if (supabase) {
           await supabase.auth.signOut();
         }
         setSession(null);
+        setProfile(null);
+        clearLocalProfile(userId);
       },
       async saveProfile(nextProfile) {
+        if (!supabase || !session?.user) {
+          throw new Error('You must be signed in before saving onboarding.');
+        }
+
         const mergedProfile = {
-          ...profile,
-          ...nextProfile,
-          id: session?.user?.id ?? profile?.id ?? 'local-user',
+          id: session.user.id,
+          full_name: nextProfile.full_name?.trim() ?? '',
+          username: nextProfile.username?.trim() ?? '',
+          personal_tag: nextProfile.personal_tag?.trim() ?? '',
+          favorite_team: nextProfile.favorite_team,
+          avatar: nextProfile.avatar,
+          palette: nextProfile.palette,
+          points: profile?.points ?? 0,
           updated_at: new Date().toISOString(),
         };
 
-        if (supabase && session?.user) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .upsert(mergedProfile, { onConflict: 'id' })
-            .select()
-            .single();
-
-          if (error) {
-            throw error;
-          }
-
-          setProfile(data);
-          saveLocalProfile(data);
-          return data;
+        if (!mergedProfile.full_name || !mergedProfile.username || !mergedProfile.personal_tag) {
+          throw new Error('Please complete all identity fields.');
         }
 
-        setProfile(mergedProfile);
-        saveLocalProfile(mergedProfile);
-        return mergedProfile;
+        const { data, error } = await supabase
+          .from('profiles')
+          .upsert(mergedProfile, { onConflict: 'id' })
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        setProfile(data);
+        saveLocalProfile(data, session.user.id);
+        return data;
       },
     }),
     [loading, profile, session],

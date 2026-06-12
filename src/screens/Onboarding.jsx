@@ -7,13 +7,15 @@ import { DEFAULT_PALETTE, TEAM_PALETTES } from '../config/teamPalettes.js';
 import { useAuth } from '../state/AuthProvider.jsx';
 
 export default function Onboarding() {
-  const { user, profile, saveProfile } = useAuth();
+  const { profile, saveProfile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    full_name: profile?.full_name ?? user?.user_metadata?.full_name ?? '',
-    username: profile?.username ?? '',
-    personal_tag: profile?.personal_tag ?? '#GoalMachine',
+    full_name: '',
+    username: '',
+    personal_tag: '',
     favorite_team: profile?.favorite_team ?? teams[0]?.name ?? 'Brazil',
     avatar: profile?.avatar ?? AVATAR_OPTIONS[0]?.src ?? '',
   });
@@ -25,12 +27,20 @@ export default function Onboarding() {
 
   async function submit(event) {
     event.preventDefault();
-    await saveProfile({
-      ...form,
-      palette: selectedPalette,
-      points: profile?.points ?? 0,
-    });
-    navigate('/');
+    setError('');
+    setSaving(true);
+
+    try {
+      await saveProfile({
+        ...form,
+        palette: selectedPalette,
+      });
+      navigate('/');
+    } catch (saveError) {
+      setError(saveError.message ?? 'Could not save onboarding. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -130,10 +140,11 @@ export default function Onboarding() {
               <button className="cursor-target" type="button" onClick={() => setStep(2)}>
                 Back
               </button>
-              <button className="cursor-target" type="submit">
-                Enter App
+              <button className="cursor-target" type="submit" disabled={saving}>
+                {saving ? 'Saving…' : 'Enter App'}
               </button>
             </div>
+            {error && <p className="form-error">{error}</p>}
           </>
         )}
       </form>

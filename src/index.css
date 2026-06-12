@@ -235,6 +235,15 @@ p {
   opacity: 0.72;
 }
 
+.form-error {
+  border: 2px solid #111;
+  background: #ff6b6b;
+  box-shadow: var(--shadow);
+  color: #111;
+  font-weight: 900;
+  padding: 12px;
+}
+
 .section-title {
   display: flex;
   align-items: end;
