@@ -121,7 +121,7 @@ export default function Onboarding() {
             <div>
               <span className="eyebrow">Step 3</span>
               <h2>Choose your avatar</h2>
-              <p className="muted">Drop custom player sprites into `public/avatars/` and add them in `src/data/avatars.js`.</p>
+              <p className="muted">Select an avatar that represents you in the app.</p>
             </div>
             <div className="avatar-grid">
               {AVATAR_OPTIONS.map((avatar) => (

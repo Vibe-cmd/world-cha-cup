@@ -7,7 +7,7 @@ export default function Login() {
   return (
     <section className="login-screen">
       <div className="hero-panel">
-        <span className="eyebrow">Google OAuth + Supabase</span>
+        <span className="eyebrow">Cup cha World</span>
         <h1>World Cha Cup</h1>
         <p>
           Gather your group, pick your country, call the match outcomes, and climb a tiny chaotic football
