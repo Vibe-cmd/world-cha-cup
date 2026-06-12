@@ -15,11 +15,11 @@ export default function Login() {
         </p>
         {!isSupabaseConfigured && (
           <p className="muted">
-            Supabase env vars are missing, so the app is running in local demo mode. Add `.env` values to enable Google
-            login.
+            Supabase env vars are missing from this build. Add `VITE_SUPABASE_URL` and
+            `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel, then redeploy.
           </p>
         )}
-        <button className="cursor-target" onClick={signInWithGoogle}>
+        <button className="cursor-target" onClick={signInWithGoogle} disabled={!isSupabaseConfigured}>
           Sign in with Google
         </button>
       </div>

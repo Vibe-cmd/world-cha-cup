@@ -14,6 +14,8 @@ React SPA for FIFA World Cup group predictions with Supabase Google OAuth, neubr
    VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    VITE_API_FOOTBALL_KEY=your-api-football-key
    VITE_FOOTBALL_DATA_API_KEY=your-football-data-key
+   API_FOOTBALL_KEY=your-api-football-key
+   FOOTBALL_DATA_API_KEY=your-football-data-key
    VITE_ADMIN_PIN=2026
    ```
 3. In Supabase, enable Google Auth and add your app URL to the redirect allow list.
@@ -43,3 +45,10 @@ Fixtures, scores, teams, and standings are fetched through `src/hooks/useFootbal
 - Cache layers: in-memory, `localStorage`, and Supabase `api_cache`
 
 Run `supabase/schema.sql` after pulling these changes so the long-term API cache table exists.
+
+## Vercel Notes
+
+- Vite variables are embedded at build time, so after editing env vars in Vercel you must redeploy.
+- Required client-side Supabase vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`.
+- Required serverless API vars: `API_FOOTBALL_KEY`, `FOOTBALL_DATA_API_KEY`.
+- The app calls `/api/api-football/*` first and `/api/football-data/*` as backup, so sports API keys are not exposed in browser code.

@@ -54,7 +54,8 @@ export function AuthProvider({ children }) {
       session,
       user: session?.user ?? null,
       profile,
-      isLoggedIn: !isSupabaseConfigured || Boolean(session),
+      isLoggedIn: Boolean(session),
+      isSupabaseConfigured,
       isOnboarded: Boolean(profile?.username && profile?.favorite_team && profile?.avatar),
       async signInWithGoogle() {
         if (!supabase) {

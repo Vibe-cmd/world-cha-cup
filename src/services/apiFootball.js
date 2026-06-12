@@ -1,7 +1,6 @@
 import { cachedRequest } from './cacheStore.js';
 
-const API_BASE = import.meta.env.DEV ? '/api/api-football' : 'https://v3.football.api-sports.io';
-const API_KEY = import.meta.env.VITE_API_FOOTBALL_KEY;
+const API_BASE = '/api/api-football';
 const WORLD_CUP_LEAGUE_ID = 1;
 const WORLD_CUP_SEASON = 2026;
 const STATIC_TTL = 1000 * 60 * 60 * 24 * 30;
@@ -30,14 +29,8 @@ function normalizeMatch(item) {
 }
 
 async function request(path) {
-  if (!API_KEY) {
-    throw new Error('Missing VITE_API_FOOTBALL_KEY in .env');
-  }
-
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'x-apisports-key': API_KEY,
-    },
+    headers: { accept: 'application/json' },
   });
 
   if (!response.ok) {

@@ -1,7 +1,6 @@
 import { cachedRequest } from './cacheStore.js';
 
-const API_BASE = import.meta.env.DEV ? '/api/football-data' : 'https://api.football-data.org/v4';
-const API_KEY = import.meta.env.VITE_FOOTBALL_DATA_API_KEY;
+const API_BASE = '/api/football-data';
 const WORLD_CUP_CODE = 'WC';
 const STATIC_TTL = 1000 * 60 * 60 * 24 * 30;
 const FIXTURES_TTL = 1000 * 60 * 60 * 12;
@@ -28,14 +27,8 @@ function normalizeMatch(match) {
 }
 
 async function request(path) {
-  if (!API_KEY) {
-    throw new Error('Missing VITE_FOOTBALL_DATA_API_KEY in .env');
-  }
-
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'X-Auth-Token': API_KEY,
-    },
+    headers: { accept: 'application/json' },
   });
 
   if (!response.ok) {
